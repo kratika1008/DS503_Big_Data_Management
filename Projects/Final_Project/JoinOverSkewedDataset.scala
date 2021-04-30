@@ -51,7 +51,7 @@ object JoinOverSkewedDataset {
     transactions.show(2)
     
     var sampled_txn = transactions.sample(0.1)
-    sampled_txn.show(30)
+    // sampled_txn.show(30)
     
     var grouped = sampled_txn.groupBy("CustID").count().sort(desc("count"))
     grouped.show(50)
@@ -60,21 +60,23 @@ object JoinOverSkewedDataset {
     
     var skewed_custs = customers.filter(col("ID").isin(skewed_keys:_*))
     skewed_custs.persist() //to cast skewed customers data in memory and broadcast to all mappers.
-    skewed_custs.show(10)
+    // skewed_custs.show(10)
     
     var non_skewed_custs = customers.filter(!col("ID").isin(skewed_keys:_*))
-    non_skewed_custs.show(10)
+    // non_skewed_custs.show(10)
     
     //Re-partition join over all transactions with non-skewed customer records
     var non_skewed_join = transactions.as('txn).join(non_skewed_custs.as('cust),col("txn.CustID")===col("cust.ID"))
-    println("Re-partition join result")
+    non_skewed_join.saveAsTextFile(args[2])
+    println("Re-partition join result:")
     non_skewed_join.show(50)
     
     //Broadcast join of all transactions with skewed customer records
     var skewed_join = transactions.as('txn).join(skewed_custs.as('cust),col("txn.CustID")===col("cust.ID"))
+    skewed_join.saveAsTextFile(args[3])
     println("Broadcast join result")
     skewed_join.show(50)
-
+    
     println("Join Done!!!")
   }
 }
